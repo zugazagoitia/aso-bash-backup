@@ -156,6 +156,7 @@ cron_backup(){
 }  
 
 switch_option(){
+
         case $1 in 
             1) 
                 perform_backup
@@ -184,8 +185,7 @@ then
     then
         mkdir -p "$BACKUP_FOLDER"
     else
-        echo "The folder $BACKUP_FOLDER does not exist and you don't have the permission to create it."
-        log_error "The folder $BACKUP_FOLDER does not exist and you don't have the permission to create it."
+        echo "The folder $BACKUP_FOLDER does not exist and you don't have the permission to create it." 
         sleep 3
         exit 1
     fi
