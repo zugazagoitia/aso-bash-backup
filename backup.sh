@@ -43,6 +43,7 @@ perform_backup(){
         echo "Invalid directory: $DIRECTORY"
         log_error "Invalid directory: $DIRECTORY"
         sleep 3
+        return
     fi
 
     #File name acording to the date
@@ -64,6 +65,16 @@ perform_backup(){
 restore_backup(){
     echo "Menu 3"
     echo "The list of existing backups is:"
+
+    #Test for write permissions on the current working directory
+    if [ ! -w "$PWD" ];
+    then
+        echo "You don't have the permission to write in the current working directory."
+        log_error "You don't have the permission to write in the current working directory."
+        sleep 3
+        return
+    fi
+
     #Print all backups mathching the pattern
     find $BACKUP_FOLDER -maxdepth 1 -regex '.*-[0-9]+-[0-9]+\.tgz' -exec basename {}   \;
     echo
@@ -75,6 +86,7 @@ restore_backup(){
         echo "Invalid file: $FILENAME"
         log_error "Invalid file: $FILENAME"
         sleep 3
+        return
     fi
 
     tar -xf "$BACKUP_FOLDER/$FILENAME" 
@@ -89,12 +101,22 @@ cron_backup(){
     printf "Absolute path of the directory: "
     read -r DIRECTORY
     echo
+
+    #Check if the directory exists and is a directory, check if it is an absolute route, then test for read permissions
     if [ ! -d "$DIRECTORY" ] || [ "$DIRECTORY" = "${DIRECTORY#/}" ] ; 
     then
         echo "Invalid directory: $DIRECTORY"
         log_error "Invalid directory: $DIRECTORY"
         sleep 3
         return    
+    else
+        if [ ! -r "$BACKUP_FOLDER" ];
+        then
+            echo "You don't have the permission to write to $BACKUP_FOLDER."
+            log_error "You don't have the permission to write to $BACKUP_FOLDER."
+            sleep 3
+            return
+        fi
     fi
 
     printf "Hour for the backup (0:00-23:59): "
@@ -132,6 +154,7 @@ cron_backup(){
     echo "Backup of $DIRECTORY scheduled at $HOUR"
     sleep 4
 }  
+
 switch_option(){
         case $1 in 
             1) 
@@ -154,7 +177,20 @@ switch_option(){
         esac        
 }
 
-mkdir -p "$BACKUP_FOLDER"
+#Check if the backup directory exists and is a directory, then test for write permissions
+if [ ! -d "$BACKUP_FOLDER" ]; 
+then
+    if [ -w "$(dirname "$BACKUP_FOLDER")" ];
+    then
+        mkdir -p "$BACKUP_FOLDER"
+    else
+        echo "The folder $BACKUP_FOLDER does not exist and you don't have the permission to create it."
+        log_error "The folder $BACKUP_FOLDER does not exist and you don't have the permission to create it."
+        sleep 3
+        exit 1
+    fi
+fi
+
 
 print_menu
 read -r OPTION
